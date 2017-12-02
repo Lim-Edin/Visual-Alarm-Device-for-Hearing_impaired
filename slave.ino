@@ -1,132 +1,83 @@
-/*
-  #include <SoftwareSerial.h>
-
-  const int sensorPin = A0;      //조도센서 연결
-  const int ledPin = 9;         //LED 연결
-
-  int lightLevel;
-  SoftwareSerial BlueToothSerial(2,3);
-
-  /*
-  void manualTune()
-  {
-  //밝기 정하기
-  lightLevel = map(lightLevel, 100, 1023, 15, 300);    //500 ~ 1023범위에 있는 lightLevel를 0~255범위로 바꾼다.
-  lightLevel = constrain(lightLevel, 15, 300);       //만약 위 함수에서 바뀌지 않으면 이 함수에서 바뀜
-  }
-
-  void setup()
-  {
-  Serial.begin(9600);
-  pinMode(ledPin, OUTPUT);
-  BlueToothSerial.begin(9600);//LED 핀을 출력용으로 설정
-  }
-
-  void loop()
-  {
-
-  Serial.print("cds =  ");
-  Serial.println(lightLevel);
-
-  char receivechar = BlueToothSerial.read();
-  Serial.write(receivechar);
-
-    lightLevel = analogRead(sensorPin);   //아날로그 값을 읽
-    manualTune();
-
-    if(receivechar == 'a')
-    {
-     //analogWrite(ledPin, lightLevel);
-     digitalWrite(ledPin, HIGH);
-    }
-     if(receivechar == 'b')
-    {
-      //analogWrite(ledPin, LOW);
-      digitalWrite(ledPin,LOW);
-    }
-
-
-  }
-*/
-//ver.mad
-
+//#define relay_ch1 2 //릴레이 채널1
+//#define relay_ch2 3 //릴레이 채널2
 #include <SoftwareSerial.h>
-
-const int sensorPin = A0;      //조도센서 연결
-//LED 연결
-int relay = 10;
-//relay[0] = 10;   //릴레이0 연결
-//relay[1] = 11; //릴레이1 연결
-//relay[2] = 12; //릴레이2 연결
+int relay_ch1=4;
+int relay_ch2=3;
+int relay_ch3=2;
+const int sensorPin = A1;
+const int moterPin = 7;
 int lightLevel;
-SoftwareSerial BlueToothSerial(2, 3);
+SoftwareSerial BTSerial(11,12);
+char receivechar;
 
 void manualTune()
 {
   //밝기 정하기
   lightLevel = map(lightLevel, 100, 1023, 10, 300);    //500 ~ 1023범위에 있는 lightLevel를 10~300범위로 바꾼다.
   lightLevel = constrain(lightLevel, 10, 300);       //만약 위 함수에서 바뀌지 않으면 이 함수에서 바뀜
-}
+} 
 
-void turnUp(int lightLevel, char receivechar)
+void lightOn()
 {
-  if (receivechar == 'a')
+  digitalWrite(moterPin, HIGH);
+  if(lightLevel > 80)
   {
-    if (lightLevel > 100)
-    {
-      digitalWrite(relay, HIGH);
-      //digitalWrite(relay[1], HIGH);
-      //digitalWrite(relay[2], HIGH);
-       Serial.print(receivechar);
-    }
-    else if (lightLevel <= 100 && lightLevel > 70)
-    {
-      digitalWrite(relay, HIGH);
-      //digitalWrite(relay[1], HIGH);
-      //digitalWrite(relay[2], LOW);
-       Serial.print(receivechar);
-    }
-    else if (lightLevel <= 70)
-    {
-      digitalWrite(relay, HIGH);
-      //digitalWrite(relay[1], LOW);
-      //digitalWrite(relay[2], LOW);
-       Serial.print(receivechar);
-    }
+    digitalWrite(relay_ch1, HIGH);// 릴레이 On
+    digitalWrite(relay_ch2, HIGH);// 릴레이 On
+    digitalWrite(relay_ch3, HIGH);//
   }
-
-  if (receivechar == 'b')
+  if(lightLevel <=80 && lightLevel > 50)
   {
-    digitalWrite(relay, LOW);
-    //digitalWrite(relay[1], LOW);
-    //digitalWrite(relay[2], LOW);
-    Serial.print(receivechar);
+    digitalWrite(relay_ch1, HIGH);// 릴레이 On
+    digitalWrite(relay_ch2, HIGH);// 릴레이 On
+    digitalWrite(relay_ch3, LOW);
   }
-
-
+   if(lightLevel <=50)
+  {
+    digitalWrite(relay_ch1, HIGH);// 릴레이 On
+    digitalWrite(relay_ch2, LOW);// 릴레이 On
+    digitalWrite(relay_ch3, LOW);
+  }
 }
-
-void setup()
+void lightOff()
 {
-  //아날로그 입력핀은 설정하지 않음
+    digitalWrite(moterPin, LOW);
+    digitalWrite(relay_ch1, LOW);// 릴레이 On
+    digitalWrite(relay_ch2, LOW);// 릴레이 On
+    digitalWrite(relay_ch3, LOW);
+}
+void setup() 
+{  //초기화
+  pinMode(relay_ch1, OUTPUT); //릴레이1채널 핀 출력포트 설정
+  pinMode(relay_ch2, OUTPUT);
+  pinMode(relay_ch3, OUTPUT);//릴레이2채널 핀 출력포트 설정
+  pinMode(moterPin, OUTPUT);
   Serial.begin(9600);
-
-  BlueToothSerial.begin(9600);//LED 핀을 출력용으로 설정
-  pinMode(relay, OUTPUT);
-  //pinMode(relay[1], OUTPUT);
-  //pinMode(relay[2], OUTPUT);
+  BTSerial.begin(9600);
 }
+void loop() 
+{ // 무한루프
 
-void loop()
-{
-  char receivechar = BlueToothSerial.read();
-  Serial.write(receivechar); //페어링 검사용
-
-  lightLevel = analogRead(sensorPin);   //센서 아날로그 값을 읽어옴
+  lightLevel = analogRead(sensorPin); //조도센서값 읽기
+  receivechar = BTSerial.read(); //블루투스값 읽기
   manualTune(); //  lightLevel 조절
 
-  //turnUp(lightLevel, receivechar);
+  //읽어온 값 시리얼 창 표기
+  Serial.print("cds = ");
+  Serial.println(lightLevel);
+  Serial.print("BT = ");
+  Serial.println(receivechar); 
 
+  if(receivechar == 'a')
+    lightOn();
+  else if(receivechar == 'b')
+  {
+    lightOff();
+  }
+  else
+  {
+    Serial.print("Pairing disconnected");
+  }
+ 
+ 
 }
-
-//ver.tears
